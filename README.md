@@ -1,4 +1,4 @@
 # Json_parsing
 log file parsing
 
-*100 000 strings*
+1. 100.000 strings
