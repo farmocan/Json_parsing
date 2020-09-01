@@ -1,0 +1,43 @@
+rm(list = ls()); cat("\014")
+library(jsonlite)
+library(magrittr)
+
+getwd()
+bigfolder <- "D:\\cloud\\***\\" #where file
+
+big_folders <- bigfolder %>% dir()
+
+
+folder <- bigfolder %>% print
+courses_file <- big_folders
+
+
+    f <- paste0(folder, courses_file)
+    outdir <- folder
+    
+    outfnformat <- paste(outdir, basename(f), "_%.2d.json", sep="")
+    con <- file(f, "rt")
+    maxnl <- 100000
+    ofi <- 1 # current output file index (iterator)
+    
+    repeat
+    { tbuff <- readLines(con, n = maxnl) # text buffer (complete lines read)
+    tbuff2 <- gsub("^.*?xz:", "", tbuff)
+    if(length(tbuff) > 0) {
+      currofn <- sprintf(outfnformat, ofi) # current output filename
+      #
+      tbuff2 <- tbuff2 %>% paste0(., collapse = ",")
+      tbuff2 <- paste0("[", tbuff2, "]")
+      
+      tbuff2 <- fromJSON(tbuff2)
+      tbuff2 %>% dim %>% print
+      
+      tbuff2 <- tbuff2[grepl("^problem_check$", tbuff2$event_type),] #exam action
+      tbuff2 %>% dim %>% print
+      #
+      write_json(tbuff2, currofn) # writing text buffer contents into a new (separate) output file
+      ofi <- ofi + 1
+    }
+    if(length(tbuff) < maxnl) break; # exits loop if EOF (end of file) was reached within current tbuff
+    }
+    close(con)
