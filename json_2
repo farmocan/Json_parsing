@@ -1,0 +1,91 @@
+library(jsonlite)
+library(magrittr)
+rm(list = ls()); cat("\014")
+
+bigfolder <- "D:\\cloud\\***\\" #where files
+
+files <- bigfolder %>% dir("json$")
+
+jsonfiles <- paste0(bigfolder, files)
+
+
+"\n" %>% cat
+problem_list <- list()
+for(Json_file in jsonfiles){
+  #Json_file <- problemJJson_file[1]
+  Json_file %>% print
+  
+  data <- fromJSON(Json_file)
+  
+  need_res <- lapply(data$event, length) >1
+  w_need_res <- which(need_res)
+  
+  resp_matrix_l <- list() #get response
+  w_need_res %>% length() %>% print
+  
+  for(i in w_need_res){
+    
+    #i=2
+    #i %>% print
+    
+    name <- data$context$user_id[i]
+    login <- data$username[i]
+    
+    time <- data$time[i]
+    
+    
+    problem_module_display_name <- data$context[i,]$module$display_name
+    
+    problem_id <- data$event[[i]]$problem_id
+    
+    if(data$event[[i]]$submission %>% length() > 0){
+      
+      data$event[[i]]$submission %>% length
+      
+      
+      newname_insubmission <- data$event[[i]]$submission %>% names #get name
+      
+      many_problem_l <- list()
+      for(nns in newname_insubmission){
+        
+        #nns <- newname_insubmission[2]
+
+        problem_attrname <- nns
+        problem_type <- data$event[[i]]$submission[[nns]]$input_type
+        problem_text <- data$event[[i]]$submission[[nns]]$question
+        problem_answ <- data$event[[i]]$submission[[nns]]$answer %>% paste0(., collapse = "|| ")
+        problem_correct <- data$event[[i]]$submission[[nns]]$correct
+        
+        many_problem_l[[nns]] <- cbind(problem_attrname, problem_type, problem_text, problem_answ, problem_correct)
+      }
+      many_problem_df <- do.call(rbind, many_problem_l) %>% data.frame() 
+      
+      attemps <- data$event[[i]]$attempts
+      
+    } else {
+      problem_text <- NA
+      problem_answ <- NA
+      problem_type <- NA
+      attemps <-  NA 
+      success <-  NA 
+    }
+    ####
+    resp_matrix_l[[i]] <- cbind(time, name, login,  problem_id, problem_module_display_name, 
+                                many_problem_df, attemps)
+    
+  }
+  
+  resp_matrix_DF <- do.call(rbind, resp_matrix_l) %>% data.frame()
+  resp_matrix_DF %>% head
+  
+  problem_list[[Json_file]] <- resp_matrix_DF
+}
+
+final_df <- do.call(rbind, problem_list)
+row.names(final_df) <- NULL
+final_df %>% head
+final_df$problem_id %>% table
+final_df%>% str
+
+write.csv2(final_df, paste0(bigfolder, "data.csv"), row.names = F)
+
